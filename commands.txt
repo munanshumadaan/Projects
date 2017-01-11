@@ -1,0 +1,23 @@
+clone repository :-
+
+	git clone "repository url"
+
+Vi editor commands :-
+
+	vi "filename.ext" to open a file in editor 
+	:w  to save file
+	:wq	to save and quit
+
+check status :-
+	git status
+
+add file:-
+		
+	git add --all : to add all files changed
+	git add "filename.ext" to add single file
+
+commit file:-
+	git commit -m "enter any message here before commiting"
+
+upload file to server using push :-
+	git push							
