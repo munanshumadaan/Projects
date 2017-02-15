@@ -230,3 +230,5 @@ function wpgyan_widgets_init() {
 	) );
 }
 add_action( 'widgets_init', 'wpgyan_widgets_init' );
+
+https://code.tutsplus.com/tutorials/creating-a-custom-wordpress-registration-form-plugin--cms-20968
