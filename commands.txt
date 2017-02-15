@@ -145,3 +145,88 @@ function custom_form_validate($cs_title,$cs_content,$files)
 	Message:    <textarea name="cs_content"><?php if(isset($cs_content)) echo $cs_content; ?></textarea><br>
 	<input type="submit" name="cs_submit">	
 </form>
+
+
+
+
+add_action('add_meta_boxes','add_metabox_formlisting');
+function add_metabox_formlisting()
+{	
+	global $post;
+	add_meta_box('wpc7_form_titles_metabox','Select Department','show_meta_box_content','post','side','high',$post);
+}
+
+function add_taxonomies_to_pages() {
+ register_taxonomy_for_object_type( 'post_tag', 'page' );
+ register_taxonomy_for_object_type( 'category', 'page' );
+ }
+add_action( 'init', 'add_taxonomies_to_pages' );
+ if ( ! is_admin() ) {
+ add_action( 'pre_get_posts', 'category_and_tag_archives' );
+ 
+ }
+function category_and_tag_archives( $wp_query ) {
+$my_post_array = array('post','page');
+ 
+ if ( $wp_query->get( 'category_name' ) || $wp_query->get( 'cat' ) )
+ $wp_query->set( 'post_type', $my_post_array );
+ 
+ if ( $wp_query->get( 'tag' ) )
+ $wp_query->set( 'post_type', $my_post_array );
+}
+
+
+function show_meta_box_content($post)
+{	
+	wp_nonce_field(basename(__FILE__),'meta-box-nonce');
+	$form_ids = array(380);
+	$options = "";
+	$department_form_name =	get_post_meta($post->ID,'department_form_name',true);
+	foreach ($form_ids as $key => $value) {
+		$selected = ($department_form_name == get_the_title($value))? "selected" : '' ;
+		$options .= "<option $selected value='".get_the_title($value)."'>".get_the_title($value)."</option>"; 	
+	}
+	echo "<select name='department_form_name'><option value='select'>select</option>".$options."</select>" ;
+
+}
+
+add_action('save_post',"save_department_meta_data");
+function save_department_meta_data()
+{
+	global $post;
+	$post_id = $post->ID;
+
+	if (!isset($_POST["meta-box-nonce"]) || !wp_verify_nonce($_POST["meta-box-nonce"], basename(__FILE__)))
+        return $post_id;
+
+    if(!current_user_can("edit_post", $post_id))
+        return $post_id;
+
+    if(defined("DOING_AUTOSAVE") && DOING_AUTOSAVE)
+        return $post_id;
+
+    	if(isset($_POST['department_form_name']))
+    		$department_name = $_POST['department_form_name'];
+
+    	update_post_meta($post_id,'department_form_name',$department_name);
+
+}	
+http://www.makeuseof.com/tag/how-to-create-wordpress-widgets/
+
+
+/**
+ * Register Widget Area.
+ *
+ */
+function wpgyan_widgets_init() {
+
+	register_sidebar( array(
+		'name' => 'Header Sidebar',
+		'id' => 'header_sidebar',
+		'before_widget' => '<div id="wpgyan-widget">',
+		'after_widget' => '</div>',
+		'before_title' => '<h2 class="rounded">',
+		'after_title' => '</h2>',
+	) );
+}
+add_action( 'widgets_init', 'wpgyan_widgets_init' );
