@@ -21,3 +21,127 @@ commit file:-
 
 upload file to server using push :-
 	git push							
+<?php
+
+
+add_shortcode('cf_disp','custom_form_shortcode');
+function custom_form_shortcode()
+{	
+	if(isset($_POST['cs_submit'])){
+		$data = $_POST;
+		extract($_POST);
+		$errors = array();
+		$is_valid = custom_form_validate($cs_title,$cs_content,$_FILES);
+		if(!empty($is_valid['messages'])){
+			// print_r($is_valid['messages']);die;
+			$errors = $is_valid['messages'];
+ 		}
+		else {
+			form_submit_completion($cs_title,$cs_content,$_FILES);
+		}
+	}
+	show_template('template-parts/forms/custom_form.php',array('errors'=>$errors,'data'=>$data));
+
+}
+
+function form_submit_completion($cs_title,$cs_content,$files)
+{	
+
+	$ip = ip2long(gethostbyname($_SERVER['HTTP_HOST']));
+
+	foreach ($files as $fname => $value) {
+			
+			$uploaded_file_id = insert_attachment($fname,false);
+
+		}
+	$image = get_image($uploaded_file_id,'thumbnail');	
+
+	$data = array(
+		'ip'=>$ip, 
+		'cs_title'=>$cs_title, 
+		'cs_content'=>$cs_content,
+		'cs_image'=>$image
+		);	
+	$db_data = serialize(array($data));
+	if(!empty(get_option('user_details')))	
+		{	//echo "updated previously";
+			$previous_data =  unserialize(get_option('user_details'));
+			$previous_data[] = $data;
+			update_option('user_details',serialize($previous_data));
+		}
+	else { //echo "updated first time"; 
+	update_option('user_details',$db_data);
+	}	
+	# code...
+}
+
+function insert_attachment($file_handler, $post_id, $setthumb=false) {
+    // check to make sure its a successful upload
+    // changes start
+    if ($_FILES[$file_handler]['error'] !== UPLOAD_ERR_OK) {
+        return __return_false();
+    }
+    // changes end
+
+    require_once(ABSPATH . "wp-admin" . '/includes/image.php');
+    require_once(ABSPATH . "wp-admin" . '/includes/file.php');
+    require_once(ABSPATH . "wp-admin" . '/includes/media.php');
+
+    $attach_id = media_handle_upload( $file_handler, $post_id );
+
+    if ($setthumb)
+        update_post_meta($post_id, '_thumbnail_id', $attach_id);
+    return $attach_id;
+}
+
+function get_image($post_id='',$size='')
+{
+	// print_r(get_post_thumbnail_id($post_id));die;
+$feat_img = wp_get_attachment_image_src( $post_id, $size = $size, $icon = false )[0];
+	return $feat_img;
+}
+
+function custom_form_validate($cs_title,$cs_content,$files)
+{
+	global $cf_errors;
+	$cf_errors = new WP_Error;
+	if ( empty( $cs_title ) || empty( $cs_content ) || ( empty( $files['cs_image']['name'] ) ) ) {
+
+		if(empty( $cs_title ))
+    	$cf_errors->add('cs_title_err', 'Required form field is missing');
+		if(empty( $cs_content ))			
+    	$cf_errors->add('cs_content_err', 'Required form field is missing');
+    	if(empty( $files['cs_image']['name'] ))
+    	$cf_errors->add('cs_image_err', 'Required form field is missing');
+	}else {
+		if(strlen($cs_title)<7)	
+    		$cf_errors->add('cs_title_err', 'Required form field is too small');
+    	if(strlen($cs_content)<7)	
+    		$cf_errors->add('cs_content_err', 'Required form field is too small');
+	}
+    if(is_wp_error($cf_errors)){
+
+    	foreach ($cf_errors->errors as $field => $error) {
+    		$errors[$field] = $error[0];
+    	}
+    	return array('status'=>false,'messages'=> $errors);
+    }
+    else return  array('status'=>true);
+}
+?>
+
+<!-- form include in template custom_form.php -->
+<?php if(isset($data['errors']) && !empty($data['errors']))extract($data['errors']); ?>
+<?php if(isset($data['data']) && !empty($data['data']))extract($data['data']); ?>
+
+<form method="post" enctype="multipart/form-data" action="<?php echo $_SERVER['REQUEST_URI']; ?>" name="customform">
+<span><?php if(isset($cs_title_err)) echo $cs_title_err; ?></span>
+	Name:       <input type="text" name="cs_title" value="<?php if(isset($cs_title)) echo $cs_title; ?>" ><br>
+<span><?php if(isset($cs_image_err)) echo $cs_image_err; ?></span>
+
+	Attachment: <input type="file" name="cs_image"><br>
+<span><?php if(isset($cs_content_err)) echo $cs_content_err; ?></span>
+
+	Message:    <textarea name="cs_content"><?php if(isset($cs_content)) echo $cs_content; ?></textarea><br>
+	<input type="submit" name="cs_submit">	
+</form>
